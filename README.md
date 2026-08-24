@@ -42,7 +42,7 @@ The full candidate process will be:
 
 1. Apply with cover letter
 2. If accepted, we'll ask you to provide a solution to our take home test
-3. If successful, you'll be invited to an on-site interview — scheduled for November 11th or 13th for interns and placement students, or November 25th or 27th for graduates
+3. If successful, you'll be invited to an on-site interview — scheduled for November 23rd or 24th for interns and placement students, or November 16th or 17th for graduates
 
 ## Complete our take-home challenge
 
@@ -71,42 +71,42 @@ like this:
     "charlie"
   ],
 
-  // 5pm, Friday 7th November 2025
-  "handover_start_at": "2025-11-07T17:00:00Z",
+  // 5pm, Friday 6th November 2026
+  "handover_start_at": "2026-11-06T17:00:00Z",
   "handover_interval_days": 7
 }
 ```
 
 In that example, our schedule will rotate evenly between those users with the first shift starting at 5pm, 
-Friday 7th November 2025, with shift changes happening every 7 days.
+Friday 6th November 2026, with shift changes happening every 7 days.
 
 That means:
 
-- Alice takes the shift for 1 week, starting at 5pm, Friday 7th November 2025
-- Then Bob is on-call for 1 week from 5pm, Friday 14th November 2025
+- Alice takes the shift for 1 week, starting at 5pm, Friday 6th November 2026
+- Then Bob is on-call for 1 week from 5pm, Friday 13th November 2026
 - Then Charlie, then...
 - Back to Alice again.
 
 Visually, this might look like this:
 
-![Schedule](./schedule2025.png)
+![Schedule](./schedule2026.png)
 
 Schedule systems often support 'overrides' where you can add temporary shift
 modifications to a schedule, such as if someone wants to go walk their dog or go
 to the cinema.
 
 An override specifies the person that will take the shift and the time period it covers.
-An example of Charlie covering 5pm–10pm on Monday 10th November 2025 would look like this:
+An example of Charlie covering 5pm–10pm on Monday 9th November 2026 would look like this:
 
 ```js
 // This is an override.
 {
   // Charlie will cover this shift
   "user": "charlie",
-  // 5pm, Monday 10th November 2025
-  "start_at": "2025-11-10T17:00:00Z",
-  // 10pm, Monday 10th November 2025
-  "end_at": "2025-11-10T22:00:00Z"
+  // 5pm, Monday 9th November 2026
+  "start_at": "2026-11-09T17:00:00Z",
+  // 10pm, Monday 9th November 2026
+  "end_at": "2026-11-09T22:00:00Z"
 }
 ```
 
@@ -125,28 +125,28 @@ It should be run like so:
 $ ./render-schedule \
     --schedule=schedule.json \
     --overrides=overrides.json \
-    --from='2025-11-07T17:00:00Z' \
-    --until='2025-11-21T17:00:00Z'
+    --from='2026-11-06T17:00:00Z' \
+    --until='2026-11-20T17:00:00Z'
 [
   {
     "user": "alice",
-    "start_at": "2025-11-07T17:00:00Z",
-    "end_at": "2025-11-10T17:00:00Z"
+    "start_at": "2026-11-06T17:00:00Z",
+    "end_at": "2026-11-09T17:00:00Z"
   },
   {
     "user": "charlie",
-    "start_at": "2025-11-10T17:00:00Z",
-    "end_at": "2025-11-10T22:00:00Z"
+    "start_at": "2026-11-09T17:00:00Z",
+    "end_at": "2026-11-09T22:00:00Z"
   },
   {
     "user": "alice",
-    "start_at": "2025-11-10T22:00:00Z",
-    "end_at": "2025-11-14T17:00:00Z"
+    "start_at": "2026-11-09T22:00:00Z",
+    "end_at": "2026-11-13T17:00:00Z"
   },
   {
     "user": "bob",
-    "start_at": "2025-11-14T17:00:00Z",
-    "end_at": "2025-11-21T17:00:00Z"
+    "start_at": "2026-11-13T17:00:00Z",
+    "end_at": "2026-11-20T17:00:00Z"
   }
 ]
 ```
