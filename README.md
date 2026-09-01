@@ -22,8 +22,7 @@ What you need to be successful:
 - Enjoy fast-paced environments and feel comfortable with change and the energy that comes with moving quickly.
 - Keep a low ego by staying humble and staying focused on the wider mission.
 
-> For more info, check out our candidate hub for a behind the scenes look at the life of interns and grads at incident
-> [candidate hub]([https://incident.io/blog/engineering](https://website-git-halgarland-candidate-hub-de-616c7f-incident-io-team.vercel.app/careers/candidate-hub/early-careers)).
+> For more info, check out our [candidate hub](https://website-git-halgarland-candidate-hub-de-616c7f-incident-io-team.vercel.app/careers/candidate-hub/early-careers) for a behind-the-scenes look at the life of interns and grads at incident.
 
 ## Complete our take-home challenge
 
