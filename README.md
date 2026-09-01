@@ -2,47 +2,28 @@
 
 [job-ad]: https://incident.io/careers#open-roles
 
-We're on a mission to build the single place you turn to when things go wrong. Over the past year, we’ve also built some of the most ambitious AI-native features in our space. From ways to make incident response smoother, to AI agents that investigate, explain, and even fix issues, we’re reimagining what incident management can be.
+## About us
 
-incident.io is now offering internships, placements, and graduate programmes for student engineers, 
-providing you the chance to be at the forefront of innovation through 3-month, 6-month, 1-year placements, or by joining as a full-time graduate.
+incident.io is the leading AI incident response platform, relied on by some of the best engineering teams in the world when things go wrong.
 
-## What is the role?
+Since launching in 2021, we've helped over 2,000 companies, including OpenAI, Netflix, and Airbnb, run more than 1 million incidents.
 
-This application is for a Product Engineer role: [watch this
-video](https://youtu.be/I7i8WabFHcY) or check out
-[our blog](https://incident.io/blog/interns-at-incident-io) written by our last
-interns to see how it differs from other roles.
+The stakes are real, the talent is insane, and somehow it's a genuinely lovely place to work. We all pull our weight, go the extra mile, and put in the bit of magic most companies don't have time for, all while having fun and never taking ourselves too seriously.
 
-We're looking for candidates that:
+We've raised $96 million from Index Ventures, Insight Partners, and Point Nine, and we're growing fast. There's never been a better time to join.
 
-- Want to work in a fast-paced engineering team in one of London's fastest
-  growing start-ups.
-- Love the idea of working closely with customers to build a product used daily
-  to respond to critical incidents.
-- Are excited by the opportunity to build software used by some of the most
-  recognisable names in tech: OpenAI, Netflix, Lovable, Linear and more that we
-  can't share yet!
+## What is early careers at incident.io like?
 
-We're not looking candidates that:
+What you need to be successful:
+- Have a bias for action and ownership and like to get things shipped, learn from mistakes, and take responsibility for your work.
+- Stay curious and don’t just accept things as they are, enjoying asking “why?” and “what if?”
+- Collaborate in person and get energy from being around others, bouncing around ideas, asking questions, and giving and receiving feedback.
+- Love building whether it’s features, tools, or ideas, and enjoy creating things and seeing them make an impact.
+- Enjoy fast-paced environments and feel comfortable with change and the energy that comes with moving quickly.
+- Keep a low ego by staying humble and staying focused on the wider mission.
 
-- Are looking for an 'intern' project: this placement will have you doing
-  real work and we'll make little distinction between an intern and a fulltime
-  engineering hire.
-- Don't enjoy learning new technologies by 'doing': we expect engineers to
-  get involved building and learn as they go (most have learned Go while on the
-  job, as an example).
-- Prefer to work solo: we're highly collaborative and all your work will
-  happen as part of a team.
-
-> Pro-tip: you can get a sense of engineering at incident.io by reading our
-> [engineering blog](https://incident.io/blog/engineering).
-
-The full candidate process will be:
-
-1. Apply with cover letter
-2. If accepted, we'll ask you to provide a solution to our take home test
-3. If successful, you'll be invited to an on-site interview — scheduled for November 23rd or 24th for interns and placement students, or November 16th or 17th for graduates
+> For more info, check out our candidate hub for a behind the scenes look at the life of interns and grads at incident
+> [candidate hub]([https://incident.io/blog/engineering](https://website-git-halgarland-candidate-hub-de-616c7f-incident-io-team.vercel.app/careers/candidate-hub/early-careers)).
 
 ## Complete our take-home challenge
 
