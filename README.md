@@ -172,3 +172,6 @@ them up-to-speed on the codebase.
 
 (We recommend [Loom](https://www.loom.com) for recording this, but you're welcome 
 to use any other tool you're comfortable with).
+
+_You may use AI tools, but you remain responsible for the code you submit. 
+You should understand what it does and be able to explain and justify the decisions behind it._
