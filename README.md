@@ -102,6 +102,11 @@ If any two touching entries have the same user (name technically) they will be m
 
 Although, this does loses information on if the shift comes from an override or an actual shift.
 
+### Same user more than once in `users`
+Duplicate names are allowed, e.g. for weighted rotations where someone takes more turns than others (`["alice", "bob", "alice"]`).
+
+A repeated name is treated as the same person, because the name is the user's identifier. This means two different people both called Alice can't be told apart. Doing so needs user IDs, which is covered in Limits under Identification.
+
 ### Invalid Input
 Note: It was stated that overrides will not start before the schedule so there's no point worrying about them.
 

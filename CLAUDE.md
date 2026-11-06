@@ -63,3 +63,7 @@ Edge-case decisions in the notes:
 - A ZIP containing the code and a `README.md` with run and dependency-install instructions. The current `README.md` is the brief, so it will need replacing or moving.
 - A 5-minute video link goes in the submission's notes field, not the repo. It covers the approach and why, how the code implements it, and what features could come next, pitched at a new team-mate.
 - AI tools are allowed, but the candidate must be able to explain and justify every decision. Keep the code simple enough to walk through, and surface design decisions to the candidate rather than settling them silently.
+
+## Git
+
+- Commit messages should be concise and not overly verbose.
