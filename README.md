@@ -1,47 +1,21 @@
-# Internship, placement and graduate take home assessment
+# Building:
+- Scheduler that rotates people and handles overrides.
+- Shifts share the same period = `handover_interval_days`
 
-[job-ad]: https://incident.io/careers#open-roles
+## Inputs:
+- `--schedule` JSON file containing a definition of a schedule (see above example)
+- `--overrides` JSON file containing an array of overrides (see above example)
+- `--from` the time from which to start listing entries
+- `--until` the time until which to list entries
 
-## About us
+## Output:
+- JSON array of the final schedule
 
-incident.io is the leading AI incident response platform, relied on by some of the best engineering teams in the world when things go wrong.
+Safe assumptions:
+- Overrides dont overlap with other overrides
+- Overrides will always be after a schedule's `handover_start_at`
 
-Since launching in 2021, we've helped over 2,000 companies, including OpenAI, Netflix, and Airbnb, run more than 1 million incidents.
-
-The stakes are real, the talent is insane, and somehow it's a genuinely lovely place to work. We all pull our weight, go the extra mile, and put in the bit of magic most companies don't have time for, all while having fun and never taking ourselves too seriously.
-
-We've raised $96 million from Index Ventures, Insight Partners, and Point Nine, and we're growing fast. There's never been a better time to join.
-
-## What is early careers at incident.io like?
-
-What you need to be successful:
-- Have a bias for action and ownership and like to get things shipped, learn from mistakes, and take responsibility for your work.
-- Stay curious and don’t just accept things as they are, enjoying asking “why?” and “what if?”
-- Collaborate in person and get energy from being around others, bouncing around ideas, asking questions, and giving and receiving feedback.
-- Love building whether it’s features, tools, or ideas, and enjoy creating things and seeing them make an impact.
-- Enjoy fast-paced environments and feel comfortable with change and the energy that comes with moving quickly.
-- Keep a low ego by staying humble and staying focused on the wider mission.
-
-> For more info, check out our [candidate hub](https://incident.io/careers/candidate-hub/early-careers) for a behind-the-scenes look at the life of interns and grads at incident.
-
-## Complete our take-home challenge
-
-### Intro
-
-Imagine you're working at incident.io and we're building a product that can page
-(call them, send an SMS, send a notification to a mobile app, etc) engineers
-when their services are involved in an incident.
-
-When configuring an on-call system, you don't want to say "whenever service X
-goes down, page Y person" as that person probably has a social life and won't
-appreciate receiving all the pages, all the time.
-
-Instead, you want to build schedules: a set of people who take it in turns to
-provide cover for a service by rotating through on-call shifts.
-
-In JSON form, the configuration that describes how a schedule behaves might look
-like this:
-
+## Config Shape:
 ```js
 // This is a schedule.
 {
@@ -55,29 +29,10 @@ like this:
   "handover_start_at": "2026-11-06T17:00:00Z",
   "handover_interval_days": 7
 }
+
 ```
 
-In that example, our schedule will rotate evenly between those users with the first shift starting at 5pm, 
-Friday 6th November 2026, with shift changes happening every 7 days.
-
-That means:
-
-- Alice takes the shift for 1 week, starting at 5pm, Friday 6th November 2026
-- Then Bob is on-call for 1 week from 5pm, Friday 13th November 2026
-- Then Charlie, then...
-- Back to Alice again.
-
-Visually, this might look like this:
-
-![Schedule](./schedule2026.png)
-
-Schedule systems often support 'overrides' where you can add temporary shift
-modifications to a schedule, such as if someone wants to go walk their dog or go
-to the cinema.
-
-An override specifies the person that will take the shift and the time period it covers.
-An example of Charlie covering 5pm–10pm on Monday 9th November 2026 would look like this:
-
+## Override Shape:
 ```js
 // This is an override.
 {
@@ -90,88 +45,147 @@ An example of Charlie covering 5pm–10pm on Monday 9th November 2026 would look
 }
 ```
 
-You can assume that overrides will always be after the schedule's `handover_start_at`, and won't 
-overlap with each other.
+# Algorithm:
 
-### Task
+## Assumptions:
+- Schedule array comes sorted as we get a config file and I can guarantee a sorted schedule pre-override.
 
-We would like you to build – in any language you choose, but ideally one you are
-very comfortable in – a script called `./render-schedule` that implements a
-scheduling algorithm.
+## Schedule Generation
+Using handover_start_at as an anchor I would calculate how many shifts have occured between handover and `--from`.
 
-It should be run like so:
+shift_no = floor((from - handover) / period)
+first_user_on_shift = users[shift_no % len(users)]
 
-```console
-$ ./render-schedule \
-    --schedule=schedule.json \
-    --overrides=overrides.json \
-    --from='2026-11-06T17:00:00Z' \
-    --until='2026-11-20T17:00:00Z'
-[
-  {
-    "user": "alice",
-    "start_at": "2026-11-06T17:00:00Z",
-    "end_at": "2026-11-09T17:00:00Z"
-  },
-  {
-    "user": "charlie",
-    "start_at": "2026-11-09T17:00:00Z",
-    "end_at": "2026-11-09T22:00:00Z"
-  },
-  {
-    "user": "alice",
-    "start_at": "2026-11-09T22:00:00Z",
-    "end_at": "2026-11-13T17:00:00Z"
-  },
-  {
-    "user": "bob",
-    "start_at": "2026-11-13T17:00:00Z",
-    "end_at": "2026-11-20T17:00:00Z"
-  }
-]
-```
+first_shift_start = shift_no x period + handover
+first_shift_end = first_shift_start + period
+actual_first_shift_start = `--from`
 
-Where:
+From there it would be a matter of cycling through users (stop condition is when start >= `--until`) and having the end of each shift be the start of the next adding shift_period each time to start to calculate the end of each shift. Then truncate the final shift to `--until`
 
-- `--schedule` JSON file containing a definition of a schedule (see above example)
-- `--overrides` JSON file containing an array of overrides (see above example)
-- `--from` the time from which to start listing entries
-- `--until` the time until which to list entries
 
-The script should output a JSON array of final schedule as a list of entries.
-This should take into account the projected entries (based on the handover
-information in the schedule) alongside the provided overrides.
+## Main Idea
+Sort the overrides based on time (Golang uses pdqsort so worst case is O(VlogV)).
 
-Your schedule should also be truncated based on the from and until parameters provided. 
-For example, if an entry was from 1pm November 7 → 1pm November 9, 
-but from was 2pm November 8, the entry should be returned as 2pm November 8 → 1pm November 9 
-(ignoring the part of the entry that is outside the provided range).
+For each override:
+1. Output every shift that ends at or before the override starts.
+2. For each shift that overlaps the override, keep only the parts outside of it:
+- left part: [shift.start, override.start]
+- right part: [override.end, shift.end]
+Parts with <= 0 lengths are dropped. This covers all cases e.g. splits, trimmed start/ends, and full replacement as it assumes the shifts overlap (which step 1 guarantees).
+3. Output the left part.
+4. Output the override once (at the first shift it overlaps)
+5. Keep the right part as the current shift as the next override may cut into it too.
 
-Entries should be truncated to match the from/until parameters.
+After all overrides, output the remaining shifts and then truncate the output based on `--from` and `--until` reusing the length <= 0 logic from earlier. Finally, merge any touching entries with the same user.
 
-We care more about correctness than performance: we will only run your code for
-time windows up to a few weeks, and with under 100 overrides.
+### Time Complexity
+S = number of shifts
+V = number of overrides
 
-### Code submission and video explanation
+Every step moves at least one of pointers forwards, so the walk is O(S + V). Sorting the overrides is O(VlogV) so all together it's O(S + VlogV) and given that the max number of overrides is < 100 this essentially costs nothing. In practice the shifts would dominate.
 
-We'd like you to submit two things:
-1. Your code
-2. A 5-minute video walkthrough
+## Edge Cases
+### `--until` <= handover_start
+Return an empty array.
 
-Please submit a ZIP file containing the code and a `README.md` that includes 
-instructions on running your code, including installation of dependencies.
+### `--from` < handover_start
+Apply max(`--from`, handover_start).
 
-In the 'notes' field, include a link to a 5-minute video explaining:
-- How you approached solving the problem, and why you chose that approach
-- How your code implements that solution
-- Now you've built the scheduler, what other product features might you build
-  on top of this
+### `--until` <= `--from`
+Return an empty array.
 
-Imagine you're showing this code to a new team-mate: your video should get
-them up-to-speed on the codebase.
+### Overrides before or after `--from` or `--until`
+These get handled implicitly by the truncation.
 
-(We recommend [Loom](https://www.loom.com) for recording this, but you're welcome 
-to use any other tool you're comfortable with).
+### Mergers
+If any two touching entries have the same user (name technically) they will be merged into one shift.
 
-_You may use AI tools, but you remain responsible for the code you submit. 
-You should understand what it does and be able to explain and justify the decisions behind it._
+Although, this does loses information on if the shift comes from an override or an actual shift.
+
+### Invalid Input
+Note: It was stated that overrides will not start before the schedule so there's no point worrying about them.
+
+Invalid inputs in this context would only be comprised of 2 types:
+1. Malformed - input cannot be parsed
+2. Parseable - input is parseable but it does not contain the right/enough information.
+
+Both of these should print a detailed error to stderr and exit in a non-zero state.
+
+# Potential Future Features:
+
+## Product Features
+### Escalation Layers
+Stack schedules into tiers, e.g. primary, secondary, then a manager.
+Each tier can reuse the existing scheduler with its own user list, but
+new logic and infrastructure would be needed to detect when a page
+isn't acknowledged in time and escalate to the next tier.
+
+### UI
+In general, some kind of GUI would increase usability.
+This could also be used to enforce specific rules e.g. no overrides before the handover, no shifts longer than x days, minimum period length etc.
+
+A lot of these other features would generally fall under UI.
+
+### Working Hours
+If a company spreads its responders across multiple time zones, it may want each team to only cover their daytime hours as to ensure whoever is on call is awake and alert.
+
+This would mean adding each user's timezone and working hours to the config (or retrieved from a database) so the scheduler (or UI) can block anyone from being scheduled outside their working hours.
+
+Shifts would now be able to be defined in any local time but this messes with the scheduling maths due to daylight savings so it would have to be updated.
+
+### Slivers
+If an override results in a small sliver of a shift being left notify the user creating the override and suggest extending it providing an easy way to do so.
+
+### On-call hours, pay tracker, and work balance
+Hours per user would be tracked accordingly e.g. weekday, weekend and bank holiday.
+This could then be used to calculate the on-call pay for each user. It would also provide insight into who is working the most and who could pick up shifts to make sure the workload is fair.
+
+### Reminders / Calender plugins
+Notify people via slack, teams etc of their upcoming shift or create a plugin so users can export their schedules to a calender.
+
+## The Tool
+
+### `--at`
+Who's on call at the specific given time and who to escalate to.
+Could also return information on that user's shift e.g. start, end times.
+
+It would be relatively easy to implement as a combination of the logic behind `--from` and `--until` or more efficiently with its own indexing logic.
+
+### `--user`
+Only one person's shifts i.e. "my shifts".
+
+### `.ics` export
+This is essentially the Reminders / Calenders plugin mentioned in Product Features.
+
+### Lint Mode
+This would comb over the schedule and flag any slivers, overlapping overrides rather than just blindly trusting user inputs.
+
+# Limits:
+
+Generally, schedules and overrides would never reach a size where the algorithm would be the limiting factor especialy since calculation costs are based on the size of the requested window.
+
+I think the real limitations right now are:
+1. No shared source of truth amongst teammates
+The only way to share a schedule currently is via cloud storage. There's no history, race condition blockers, invalid input checks etc.
+
+The fix is a backend that owns the data acting as a single source of truth, and all operations made through an API. This would ensure validation on every operation as well as an audit log
+
+2. Recomputation
+Schedules are re-rendered on every request.
+Caching would avoid repeated work but must ensure that schedules are invalidated whenver an override or shifts change.
+
+However, at this scale / trivial size I would have to weight the benefits of the saved computation costs from caching with the calculation costs of caching.
+
+3. Irrelevant Overrides
+Find the relevant overrides only via `override.start` `override.end`. This would avoid wasted computation.
+
+4. Identification
+Users are referenced only by name which isn't unique.
+Using user ID's provides enough unique information to find contact information, and would support the development of a UI.
+
+5. Paging Lookup
+If an issue arises it wont just be one person being paged. Multiple teams would be getting notified which could fire hundreds of alerts.
+
+If the lookup for who's on call fails nobody gets paged apart from possibly the team responsible for the scheduling.
+
+Using a lookup system that instead just checks that specific moment in time and for any overrides would reduce the chances that something goes wrong as it avoids a full schedule render.

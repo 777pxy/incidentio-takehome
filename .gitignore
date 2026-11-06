@@ -1,0 +1,11 @@
+# Built binary
+/render-schedule
+
+# Go test and coverage output
+*.test
+*.out
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
