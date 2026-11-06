@@ -107,7 +107,20 @@ Duplicate names are allowed, e.g. for weighted rotations where someone takes mor
 
 A repeated name is treated as the same person, because the name is the user's identifier. This means two different people both called Alice can't be told apart. Doing so needs user IDs, which is covered in Limits under Identification.
 
-### Invalid Input
+### Time zones
+The brief doesn't say what time zone inputs will be in. Every example ends in `Z` (UTC), but RFC 3339 also allows an offset in place of the `Z`, e.g. `2026-11-06T18:00:00+01:00`.
+
+I decided to accept any offset rather than only `Z`, as rejecting a valid RFC 3339 time would be assuming more than the brief says, and would be surprising to someone who copied a time from a tool that outputs local offsets. The offset has to be in `±HH:MM` form, e.g. `+01:00` or `-05:00`, so `+0100` is rejected.
+
+Every time is converted to UTC as soon as it's parsed. This only changes how a time is displayed, not the moment it refers to, so the shifts come out the same.
+
+Doing it once at the start means:
+- The output is consistent, with every time ending in `Z`, instead of mixing the offsets from the inputs.
+- Times compare correctly. Go's `==` treats the same moment in two different zones as different, which would stop touching entries from being merged.
+
+The original offset is lost, but nothing needs it as shifts are a fixed number of 24 hour periods. Shifts defined in local time would need proper time zone handling (see Working Hours).
+
+## Validation
 Note: It was stated that overrides will not start before the schedule so there's no point worrying about them.
 
 Invalid inputs in this context would only be comprised of 2 types:
@@ -115,6 +128,25 @@ Invalid inputs in this context would only be comprised of 2 types:
 2. Parseable - input is parseable but it does not contain the right/enough information.
 
 Both of these should print a detailed error to stderr and exit in a non-zero state.
+
+### Window longer than 1 year
+If `--until` is more than 1 year after `--from`, print an error and exit with a non-zero code.
+
+This decision was based on the brief, which says the code will only be run for time windows of up to a few weeks. A window over a year is far outside that, so it's most likely a mistake, e.g. typing the wrong year, and rendering it would produce a long list nobody asked for. A year still leaves plenty of room above a few weeks.
+
+The check uses the `--from` given by the user, before it's clamped to `handover_start_at`. A year is a calendar year, so it handles leap years.
+
+### `handover_interval_days` longer than 1 year
+If `handover_interval_days` is more than 365, print an error and exit with a non-zero code.
+
+I don't expect anyone to be on call for more than a month, let alone a year, so a 1 year cap leaves more than enough room. Anything longer must be a user input error.
+
+### Other rules
+- All four flags are required, file paths can't be empty, and unknown flags or extra arguments are rejected.
+- `users` must have at least one user, and no name can be blank.
+- `handover_start_at` must be present, and `handover_interval_days` must be at least 1.
+- Each override needs a non-blank `user`, a `start_at` and an `end_at`, with `end_at` after `start_at`.
+- JSON syntax and type errors give the line and column, and every problem in a file is reported at once.
 
 # Potential Future Features:
 

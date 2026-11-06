@@ -59,6 +59,15 @@ func TestParseSchedule(t *testing.T) {
 			},
 		},
 		{
+			name: "handover_start_at is converted to UTC",
+			json: `{"users": ["alice"], "handover_start_at": "2026-11-06T18:00:00+01:00", "handover_interval_days": 7}`,
+			want: Schedule{
+				Users:                []string{"alice"},
+				HandoverStartAt:      mustTime(t, "2026-11-06T17:00:00Z"),
+				HandoverIntervalDays: 7,
+			},
+		},
+		{
 			name:    "empty file",
 			json:    ``,
 			wantErr: "malformed JSON at line 1, column 1",
@@ -91,7 +100,7 @@ func TestParseSchedule(t *testing.T) {
 		{
 			name:    "handover_start_at not RFC 3339",
 			json:    `{"users": ["alice"], "handover_start_at": "2026-11-06", "handover_interval_days": 7}`,
-			wantErr: `timestamp "2026-11-06" must be in RFC 3339 format (YYYY-MM-DDTHH:MM:SSZ), e.g. 2026-11-06T17:00:00Z`,
+			wantErr: `timestamp "2026-11-06" must be in RFC 3339 format (YYYY-MM-DDTHH:MM:SSZ, or with an offset such as +01:00 in place of Z), e.g. 2026-11-06T17:00:00Z`,
 		},
 		{
 			name: "null reports every missing field",
@@ -118,9 +127,18 @@ func TestParseSchedule(t *testing.T) {
 			wantProblems: []string{"handover_interval_days: must be at least 1"},
 		},
 		{
-			name:         "interval too long to represent",
-			json:         `{"users": ["alice"], "handover_start_at": "2026-11-06T17:00:00Z", "handover_interval_days": 106752}`,
-			wantProblems: []string{"handover_interval_days: must be at most 106751"},
+			name: "interval of 1 year is allowed",
+			json: `{"users": ["alice"], "handover_start_at": "2026-11-06T17:00:00Z", "handover_interval_days": 365}`,
+			want: Schedule{
+				Users:                []string{"alice"},
+				HandoverStartAt:      mustTime(t, "2026-11-06T17:00:00Z"),
+				HandoverIntervalDays: 365,
+			},
+		},
+		{
+			name:         "interval over 1 year",
+			json:         `{"users": ["alice"], "handover_start_at": "2026-11-06T17:00:00Z", "handover_interval_days": 366}`,
+			wantProblems: []string{"handover_interval_days: must be at most 365"},
 		},
 	}
 
@@ -144,6 +162,15 @@ func TestParseOverrides(t *testing.T) {
 		{
 			name: "valid",
 			json: `[{"user": "charlie", "start_at": "2026-11-09T17:00:00Z", "end_at": "2026-11-09T22:00:00Z"}]`,
+			want: []Override{{
+				User:    "charlie",
+				StartAt: mustTime(t, "2026-11-09T17:00:00Z"),
+				EndAt:   mustTime(t, "2026-11-09T22:00:00Z"),
+			}},
+		},
+		{
+			name: "times are converted to UTC",
+			json: `[{"user": "charlie", "start_at": "2026-11-09T12:00:00-05:00", "end_at": "2026-11-09T23:00:00+01:00"}]`,
 			want: []Override{{
 				User:    "charlie",
 				StartAt: mustTime(t, "2026-11-09T17:00:00Z"),

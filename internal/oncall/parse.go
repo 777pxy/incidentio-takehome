@@ -9,12 +9,13 @@ import (
 	"time"
 )
 
-// maxIntervalDays is the longest interval whose length still fits in a
-// time.Duration (about 292 years); anything longer would overflow.
-const maxIntervalDays = int(time.Duration(1<<63-1) / (24 * time.Hour))
+// maxIntervalDays caps shifts at 1 year. Nobody should be on call for more
+// than a month, let alone a year, so anything longer is an input mistake.
+const maxIntervalDays = 365
 
-// TimeFormatHint describes the timestamp format every input must use.
-const TimeFormatHint = "RFC 3339 format (YYYY-MM-DDTHH:MM:SSZ), e.g. 2026-11-06T17:00:00Z"
+// TimeFormatHint describes the timestamp format every input must use. Any UTC
+// offset is accepted, and parsed times are converted to UTC.
+const TimeFormatHint = "RFC 3339 format (YYYY-MM-DDTHH:MM:SSZ, or with an offset such as +01:00 in place of Z), e.g. 2026-11-06T17:00:00Z"
 
 // ValidationError lists every problem found in input that parsed as JSON but
 // doesn't contain the right information.
@@ -62,6 +63,8 @@ func ParseSchedule(data []byte) (Schedule, error) {
 	if len(problems) > 0 {
 		return Schedule{}, &ValidationError{What: "schedule", Problems: problems}
 	}
+	// Work in UTC so times print consistently and compare equal with ==.
+	s.HandoverStartAt = s.HandoverStartAt.UTC()
 	return s, nil
 }
 
@@ -94,6 +97,10 @@ func ParseOverrides(data []byte) ([]Override, error) {
 
 	if len(problems) > 0 {
 		return nil, &ValidationError{What: "overrides", Problems: problems}
+	}
+	for i := range overrides {
+		overrides[i].StartAt = overrides[i].StartAt.UTC()
+		overrides[i].EndAt = overrides[i].EndAt.UTC()
 	}
 	return overrides, nil
 }

@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/777pxy/incidentio-takehome/internal/oncall"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,6 +79,17 @@ func TestRun(t *testing.T) {
 			wantCode: 0,
 		},
 		{
+			name:     "window of exactly 1 year is allowed",
+			args:     argsWith(map[string]string{"from": "2026-11-06T17:00:00Z", "until": "2027-11-06T17:00:00Z"}),
+			wantCode: 0,
+		},
+		{
+			name:       "window over 1 year",
+			args:       argsWith(map[string]string{"from": "2026-11-06T17:00:00Z", "until": "2027-11-06T17:00:01Z"}),
+			wantCode:   1,
+			wantStderr: []string{"--until (2027-11-06T17:00:01Z) must be at most 1 year after --from (2026-11-06T17:00:00Z)"},
+		},
+		{
 			name:       "no flags",
 			args:       nil,
 			wantCode:   1,
@@ -98,7 +111,7 @@ func TestRun(t *testing.T) {
 			name:       "from not RFC 3339",
 			args:       argsWith(map[string]string{"from": "2026-11-06"}),
 			wantCode:   1,
-			wantStderr: []string{`--from "2026-11-06" must be in RFC 3339 format (YYYY-MM-DDTHH:MM:SSZ), e.g. 2026-11-06T17:00:00Z`},
+			wantStderr: []string{`--from "2026-11-06" must be in RFC 3339 format (YYYY-MM-DDTHH:MM:SSZ, or with an offset such as +01:00 in place of Z), e.g. 2026-11-06T17:00:00Z`},
 		},
 		{
 			name:       "until empty",
@@ -150,6 +163,35 @@ func TestRun(t *testing.T) {
 			for _, want := range tt.wantStderr {
 				assert.Contains(t, stderr.String(), want)
 			}
+		})
+	}
+}
+
+func TestParseTimeFlag(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		want    string // expected time, printed in RFC 3339
+		wantErr bool
+	}{
+		{name: "UTC stays UTC", value: "2026-11-06T17:00:00Z", want: "2026-11-06T17:00:00Z"},
+		{name: "positive offset", value: "2026-11-06T18:00:00+01:00", want: "2026-11-06T17:00:00Z"},
+		{name: "negative offset", value: "2026-11-06T12:00:00-05:00", want: "2026-11-06T17:00:00Z"},
+		{name: "zero offset", value: "2026-11-06T17:00:00+00:00", want: "2026-11-06T17:00:00Z"},
+		{name: "offset without colon", value: "2026-11-06T18:00:00+0100", wantErr: true},
+		{name: "no offset or Z", value: "2026-11-06T17:00:00", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseTimeFlag("from", tt.value)
+			if tt.wantErr {
+				require.ErrorContains(t, err, oncall.TimeFormatHint)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, time.UTC, got.Location())
+			assert.Equal(t, tt.want, got.Format(time.RFC3339))
 		})
 	}
 }

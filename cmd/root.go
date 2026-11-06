@@ -79,6 +79,12 @@ func loadInput(opts options) (input, error) {
 	if err != nil {
 		return input{}, err
 	}
+	// The brief only expects windows of up to a few weeks, so a window over a
+	// year is almost certainly a mistake, e.g. the wrong year.
+	if until.After(from.AddDate(1, 0, 0)) {
+		return input{}, fmt.Errorf("--until (%s) must be at most 1 year after --from (%s)",
+			until.Format(time.RFC3339), from.Format(time.RFC3339))
+	}
 	schedule, err := loadFile("schedule", opts.schedulePath, oncall.ParseSchedule)
 	if err != nil {
 		return input{}, err
@@ -95,7 +101,7 @@ func parseTimeFlag(name, value string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, fmt.Errorf("--%s %q must be in %s", name, value, oncall.TimeFormatHint)
 	}
-	return t, nil
+	return t.UTC(), nil
 }
 
 // loadFile reads the file given to --flag and parses it with parse.

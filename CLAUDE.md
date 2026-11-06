@@ -66,4 +66,5 @@ Edge-case decisions in the notes:
 
 ## Git
 
+- Use [Conventional Commits](https://www.conventionalcommits.org/): `type: summary`, e.g. `feat:`, `fix:`, `test:`, `refactor:`, `docs:`, `chore:`.
 - Commit messages should be concise and not overly verbose.
