@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the incident.io early-careers take-home, written in Go with Cobra. `./render-schedule` is fully implemented: it parses and validates the input, generates the shifts, applies the overrides, truncates the result to the window, merges touching entries and prints the result as JSON.
 
-- `README.md` is the candidate's spec and the source of truth for behaviour. Code must match it step by step. If the spec is wrong, point to the exact line rather than coding around it.
-- `project_guide.md` is the original incident.io brief. Use it for context only.
+- `DESIGN.md` is the candidate's spec and the source of truth for behaviour: the algorithm, edge cases and validation rules. Code must match it step by step. If the spec is wrong, point to the exact line rather than coding around it.
+- `IMPLEMENTATION.md` holds the implementation details behind those decisions. The current limits are in `DESIGN.md`.
+- `README.md` is the submission README: install, build, run and test instructions, input shapes and project layout. Keep it short.
 
 Only implement what the candidate explicitly asks for in the current request. When they ask a question, answer it and offer the change rather than making it.
 
@@ -52,7 +53,7 @@ The command prints a JSON array of `{user, start_at, end_at}` entries. Errors ar
 
 ## Submission
 
-- A ZIP containing the code and a `README.md` with run and dependency-install instructions. The README doesn't have these instructions yet.
+- A ZIP containing the code and a `README.md` with run and dependency-install instructions.
 - A 5-minute video link goes in the submission's notes field, not the repo. It covers the approach and why, how the code implements it, and what features could come next, pitched at a new team-mate.
 - AI tools are allowed, but the candidate must be able to explain and justify every decision. Keep the code simple enough to walk through, and surface design decisions to the candidate rather than settling them silently.
 

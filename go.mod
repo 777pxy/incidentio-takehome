@@ -1,6 +1,6 @@
 module github.com/777pxy/incidentio-takehome
 
-go 1.27.3
+go 1.23
 
 require (
 	github.com/spf13/cobra v1.10.2
