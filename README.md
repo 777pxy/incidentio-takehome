@@ -53,6 +53,8 @@ Safe assumptions:
 ## Schedule Generation
 Using handover_start_at as an anchor I would calculate how many shifts have occured between handover and `--from`.
 
+`--from` is clamped to handover_start_at first (see Edge Cases). This matters because Go's integer division rounds towards zero, so it only acts as a floor when `from - handover` isn't negative.
+
 shift_no = floor((from - handover) / period)
 first_user_on_shift = users[shift_no % len(users)]
 
@@ -71,7 +73,7 @@ For each override:
 2. For each shift that overlaps the override, keep only the parts outside of it:
 - left part: [shift.start, override.start]
 - right part: [override.end, shift.end]
-Parts with <= 0 lengths are dropped. This covers all cases e.g. splits, trimmed start/ends, and full replacement as it assumes the shifts overlap (which step 1 guarantees).
+Parts with <= 0 lengths are dropped. This covers all cases e.g. splits, trimmed start/ends, and full replacement as it assumes the shifts overlap (step 1 guarantees each shift ends after the override starts, and the step 2 condition guarantees it starts before the override ends).
 3. Output the left part.
 4. Output the override once (at the first shift it overlaps)
 5. Keep the right part as the current shift as the next override may cut into it too.
@@ -95,7 +97,9 @@ Apply max(`--from`, handover_start).
 Return an empty array.
 
 ### Overrides before or after `--from` or `--until`
-These get handled implicitly by the truncation.
+An override that crosses `--from` or `--until` is cut to the window by the truncation.
+
+An override entirely outside the window overlaps no shift, so step 4 never outputs it and it's dropped.
 
 ### Mergers
 If any two touching entries have the same user (name technically) they will be merged into one shift.
@@ -116,7 +120,7 @@ Every time is converted to UTC as soon as it's parsed. This only changes how a t
 
 Doing it once at the start means:
 - The output is consistent, with every time ending in `Z`, instead of mixing the offsets from the inputs.
-- Times compare correctly. Go's `==` treats the same moment in two different zones as different, which would stop touching entries from being merged.
+- Times compare the same way everywhere. Go's `==` and testify's `assert.Equal` both treat the same moment in two different zones as different. Merging uses `.Equal`, which ignores zones, so it works either way, but the tests rely on the conversion.
 
 The original offset is lost, but nothing needs it as shifts are a fixed number of 24 hour periods. Shifts defined in local time would need proper time zone handling (see Working Hours).
 
