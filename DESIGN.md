@@ -128,6 +128,8 @@ isn't acknowledged in time and escalate to the next tier.
 
 This is slightly out of scope for now, as the tool is just a CLI with no connectivity: it can't send pages or know whether one was acknowledged.
 
+Real schedules also stack rotations within a tier, e.g. a shadow rotation for someone learning the ropes, so there would need to be a rule for which layer wins when they overlap.
+
 ### UI
 In general, some kind of GUI would increase usability.
 This could also be used to enforce specific rules e.g. no overrides before the handover, no shifts longer than x days, minimum period length etc.
@@ -140,6 +142,14 @@ If a company spreads its responders across multiple time zones, it may want each
 This would mean adding each user's timezone and working hours to the config (or retrieved from a database) so the scheduler (or UI) can block anyone from being scheduled outside their working hours.
 
 Shifts would now be able to be defined in any local time but this messes with the scheduling maths due to daylight savings so it would have to be updated.
+
+### Local time and daylight saving
+Shifts are currently fixed 24 hour blocks in UTC, but people think in local time, e.g. "handover at 5pm London". That's 17:00 UTC in winter and 16:00 UTC in summer, so a handover set in UTC drifts by an hour twice a year.
+
+Storing a time zone with each schedule and counting local calendar days would keep handovers at the same local time all year.
+
+### Time off
+Holidays and time off can clash with a shift. Users could mark when they're away so they're skipped, or so the clash is flagged before the shift starts.
 
 ### Slivers
 If an override results in a small sliver of a shift being left, notify the user creating the override and suggest extending it, providing an easy way to do so, as being on shift for 5 minutes is a bit ridiculous.
@@ -168,6 +178,10 @@ This is essentially the Reminders / Calendar plugins mentioned in Product Featur
 ### Lint Mode
 This would comb over the schedule and flag any slivers or overlapping overrides rather than just blindly trusting user inputs.
 
+It could also flag gaps, where nobody is on call, and conflicts, where someone is on two shifts at once.
+
+A real product can't assume overrides never overlap like the brief does, so it would need a rule for them: either reject them when they're saved, or let one take priority.
+
 # Limits
 
 Generally, schedules and overrides would never reach a size where the algorithm would be the limiting factor, especially since calculation costs are based on the size of the requested window.
@@ -195,6 +209,8 @@ I think the real limitations right now are:
    Users are referenced only by name which isn't unique.
    Using user IDs provides enough unique information to find contact information, and would support the development of a UI.
 
+   Shifts and overrides have no IDs either. Swaps, notifications and audit logs all need to point at a specific shift, and overrides should record who made them and why.
+
 5. Paging Lookup
 
    Paging only needs to know who's on call at one moment, but the only way to find that out is a full schedule render, which is heavier and has more that can go wrong.
@@ -202,3 +218,9 @@ I think the real limitations right now are:
    That matters because when an issue arises it won't just be one person being paged. Multiple teams would be getting notified which could fire hundreds of alerts, and if the lookup for who's on call fails nobody gets paged apart from possibly the team responsible for the scheduling.
 
    Using a lookup system that instead just checks that specific moment in time and any overrides covering it would reduce the chances that something goes wrong.
+
+6. Changing the rotation rewrites history
+
+   Who's on call is worked out from the anchor, as `users[shift_no % len(users)]`. Adding or removing a single user reshuffles every shift, including ones that have already happened.
+
+   Changes should apply from a date onwards instead, and past shifts should be kept as fixed records, since on-call pay, audits and "who got paged at 3am?" all depend on them.
