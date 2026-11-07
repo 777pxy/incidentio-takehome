@@ -37,8 +37,8 @@ func (e *ValidationError) Error() string {
 // ParseSchedule decodes a schedule from JSON and validates it.
 func ParseSchedule(data []byte) (Schedule, error) {
 	var s Schedule
-	if err := json.Unmarshal(data, &s); err != nil {
-		return Schedule{}, describeJSONError(data, err)
+	if err := decode(data, &s); err != nil {
+		return Schedule{}, err
 	}
 
 	var problems []string
@@ -73,8 +73,8 @@ func ParseSchedule(data []byte) (Schedule, error) {
 // the brief guarantees neither will happen.
 func ParseOverrides(data []byte) ([]Override, error) {
 	var overrides []Override
-	if err := json.Unmarshal(data, &overrides); err != nil {
-		return nil, describeJSONError(data, err)
+	if err := decode(data, &overrides); err != nil {
+		return nil, err
 	}
 
 	var problems []string
@@ -103,6 +103,23 @@ func ParseOverrides(data []byte) ([]Override, error) {
 		overrides[i].EndAt = overrides[i].EndAt.UTC()
 	}
 	return overrides, nil
+}
+
+// decode unmarshals data into v and rejects any key v has no field for.
+func decode(data []byte, v any) error {
+	if err := json.Unmarshal(data, v); err != nil {
+		return describeJSONError(data, err)
+	}
+	// Unmarshal ignores unknown keys, so a misspelled key would only show up
+	// later as a missing value. A second pass with DisallowUnknownFields names
+	// it. The JSON is already known to be valid, so the only error left is an
+	// unknown key, which Go reports as `json: unknown field "name"`.
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(v); err != nil {
+		return fmt.Errorf("unknown key %s", strings.TrimPrefix(err.Error(), "json: unknown field "))
+	}
+	return nil
 }
 
 // describeJSONError turns a decoding error into a message that says where in

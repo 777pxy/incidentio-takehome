@@ -98,6 +98,11 @@ func TestParseSchedule(t *testing.T) {
 			wantErr: "wrong type",
 		},
 		{
+			name:    "misspelled key",
+			json:    `{"users": ["alice"], "handover_start_at": "2026-11-06T17:00:00Z", "handover_intervl_days": 7}`,
+			wantErr: `unknown key "handover_intervl_days"`,
+		},
+		{
 			name:    "handover_start_at not RFC 3339",
 			json:    `{"users": ["alice"], "handover_start_at": "2026-11-06", "handover_interval_days": 7}`,
 			wantErr: `timestamp "2026-11-06" must be in RFC 3339 format (YYYY-MM-DDTHH:MM:SSZ, or with an offset such as +01:00 in place of Z), e.g. 2026-11-06T17:00:00Z`,
@@ -202,6 +207,11 @@ func TestParseOverrides(t *testing.T) {
 			name:    "malformed",
 			json:    `[{"user": "charlie"`,
 			wantErr: "malformed JSON",
+		},
+		{
+			name:    "misspelled key",
+			json:    `[{"user": "charlie", "start": "2026-11-09T17:00:00Z", "end_at": "2026-11-09T22:00:00Z"}]`,
+			wantErr: `unknown key "start"`,
 		},
 		{
 			name:    "bad timestamp",

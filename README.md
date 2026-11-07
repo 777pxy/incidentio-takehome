@@ -127,6 +127,13 @@ The original offset is lost, but nothing needs it as shifts are a fixed number o
 ## Validation
 Note: It was stated that overrides will not start before the schedule so there's no point worrying about them.
 
+The same goes for the other safe assumptions, so none of them are checked. If they're broken, the output is still produced but isn't a valid schedule:
+- Overlapping overrides produce entries that overlap in the output.
+- An override entirely inside another override is dropped.
+- An override before `handover_start_at` produces an entry before the rotation starts.
+
+Catching these is what Lint Mode (see Potential Future Features) would do.
+
 Invalid inputs in this context would only be comprised of 2 types:
 1. Malformed - input cannot be parsed
 2. Parseable - input is parseable but it does not contain the right/enough information.
@@ -139,6 +146,8 @@ If `--until` is more than 1 year after `--from`, print an error and exit with a 
 This decision was based on the brief, which says the code will only be run for time windows of up to a few weeks. A window over a year is far outside that, so it's most likely a mistake, e.g. typing the wrong year, and rendering it would produce a long list nobody asked for. A year still leaves plenty of room above a few weeks.
 
 The check uses the `--from` given by the user, before it's clamped to `handover_start_at`. A year is a calendar year, so it handles leap years.
+
+One quirk: a `--from` on 29th February allows a 366-day window. Go's `AddDate` moves 29th February plus 1 year to 1st March, because the next year has no 29th February.
 
 ### `handover_interval_days` longer than 1 year
 If `handover_interval_days` is more than 365, print an error and exit with a non-zero code.
@@ -157,8 +166,19 @@ The check uses the `--from` given by the user. A year is a calendar year.
 - `users` must have at least one user, and no name can be blank.
 - `handover_start_at` must be present, and `handover_interval_days` must be at least 1.
 - Each override needs a non-blank `user`, a `start_at` and an `end_at`, with `end_at` after `start_at`.
+- A time of `null` or `0001-01-01T00:00:00Z` is reported as "is missing". Go uses `0001-01-01T00:00:00Z` as its empty time, so the two can't be told apart from a missing value.
+- Unknown keys are rejected, e.g. `unknown key "handover_intervl_days"`. Without this, a misspelled key would be ignored and only show up as a missing value, e.g. `handover_interval_days: must be at least 1`, which doesn't say the name was wrong. The error doesn't say which override the key was in.
+- Keys are matched without regard to case, so `"USERS"` is read as `users`. This is how Go's `encoding/json` works.
+- If a key appears twice in the same object, e.g. `{"users": ["a"], "users": ["b"]}`, the last value is used and no error is given. This is also how Go's `encoding/json` works.
 - JSON syntax and type errors stop at the first one and give its line and column. Once a file decodes, every validation problem in it is reported at once. Reporting every decoding error as well would mean decoding each field separately, which is too exhaustive for the benefit.
 - Bad timestamps in a file are caught by Go's time parser while decoding. The error shows the bad value and the expected format, e.g. `timestamp "6th Nov 2026" must be in RFC 3339 format ...`, but not its line, column or field, and decoding stops there.
+
+### JSON library
+I used Go's standard `encoding/json` rather than the newer `encoding/json/v2`, which matches keys case-sensitively and rejects duplicate keys by default.
+- Everyone knows it. A new team-mate or reviewer will almost certainly have used it, and there are far more examples and answers for it.
+- It's proven. It has been used in production for over a decade, so its quirks are well known and documented.
+- The brief doesn't need the extra strictness. Its priority is a correct schedule from valid input, and what `json/v2` adds is mostly catching mistakes in hand-edited files.
+- The gap that matters, misspelled keys, is handled in `encoding/json` with `DisallowUnknownFields`. Case-insensitive and duplicate keys are documented above as known behaviour.
 
 # Potential Future Features:
 
