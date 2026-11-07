@@ -167,7 +167,7 @@ func TestRun(t *testing.T) {
 			name:       "overlapping overrides",
 			args:       argsWith(map[string]string{"overrides": overlapping}),
 			wantCode:   1,
-			wantStderr: []string{overlapping + ": invalid overrides:\n  - overrides[1]: overlaps overrides[0]"},
+			wantStderr: []string{overlapping + ": invalid overrides:\n  - overrides[1] (bob, starting 2026-11-09T20:00:00Z): overlaps overrides[0] (charlie, starting 2026-11-09T17:00:00Z)"},
 		},
 	}
 

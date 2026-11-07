@@ -143,6 +143,15 @@ render-schedule: testdata/invalid/schedule.json: invalid schedule:
   - handover_interval_days: must be at least 1
 ```
 
+Overrides that break the brief's assumptions are named by their place in the file, their user and their start time:
+
+```console
+$ ./render-schedule --overrides=overrides.json ...
+render-schedule: overrides.json: invalid overrides:
+  - overrides[2] (alice, starting 2026-11-05T09:00:00Z): must not start before handover_start_at (2026-11-06T17:00:00Z)
+  - overrides[1] (bob, starting 2026-11-09T20:00:00Z): overlaps overrides[0] (charlie, starting 2026-11-09T17:00:00Z)
+```
+
 ## Test
 ```console
 go test ./...

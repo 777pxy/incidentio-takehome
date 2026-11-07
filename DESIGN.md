@@ -83,7 +83,7 @@ The brief's safe assumptions (overrides don't overlap, and don't start before `h
 - An override entirely inside another override would be dropped.
 - An override before `handover_start_at` would produce an entry before the rotation starts.
 
-So instead, the overrides are sorted by start time and then checked in that order. Each one is compared with the override that ends latest so far, which also catches one sitting inside an earlier, longer override. Any that break the assumptions are rejected with an error, e.g. `overrides[1]: overlaps overrides[0]`. The sorted overrides are then passed on to the Main Idea, so they're only sorted once.
+So instead, the overrides are sorted by start time and then checked in that order. Each one is compared with the override that ends latest so far, which also catches one sitting inside an earlier, longer override. Any that break the assumptions are rejected with an error, e.g. `overrides[1] (bob, starting 2026-11-09T20:00:00Z): overlaps overrides[0] (charlie, starting 2026-11-09T17:00:00Z)`. The sorted overrides are then passed on to the Main Idea, so they're only sorted once.
 
 Invalid inputs in this context fall into 2 types:
 1. Malformed - input cannot be parsed

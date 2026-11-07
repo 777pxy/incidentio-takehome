@@ -126,13 +126,13 @@ func CheckOverrides(s Schedule, overrides []Override) ([]Override, error) {
 	for _, i := range order {
 		o := overrides[i]
 		if o.StartAt.Before(s.HandoverStartAt) {
-			problems = append(problems, fmt.Sprintf("overrides[%d]: start_at (%s) must not be before handover_start_at (%s)",
-				i, o.StartAt.Format(time.RFC3339), s.HandoverStartAt.Format(time.RFC3339)))
+			problems = append(problems, fmt.Sprintf("%s: must not start before handover_start_at (%s)",
+				describeOverride(i, o), s.HandoverStartAt.Format(time.RFC3339)))
 		}
 		// Comparing with the one that ends latest, not just the previous one,
 		// also catches an override inside an earlier, longer one.
 		if latest >= 0 && o.StartAt.Before(overrides[latest].EndAt) {
-			problems = append(problems, fmt.Sprintf("overrides[%d]: overlaps overrides[%d]", i, latest))
+			problems = append(problems, fmt.Sprintf("%s: overlaps %s", describeOverride(i, o), describeOverride(latest, overrides[latest])))
 		}
 		if latest < 0 || o.EndAt.After(overrides[latest].EndAt) {
 			latest = i
@@ -144,6 +144,12 @@ func CheckOverrides(s Schedule, overrides []Override) ([]Override, error) {
 		return nil, &ValidationError{What: "overrides", Problems: problems}
 	}
 	return sorted, nil
+}
+
+// describeOverride names an override by its place in the file, its user and
+// its start time, so an error about it can be found without counting entries.
+func describeOverride(i int, o Override) string {
+	return fmt.Sprintf("overrides[%d] (%s, starting %s)", i, o.User, o.StartAt.Format(time.RFC3339))
 }
 
 // decode unmarshals data into v and rejects any key v has no field for.
