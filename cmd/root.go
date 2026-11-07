@@ -96,6 +96,13 @@ func loadInput(opts options) (input, error) {
 	if err != nil {
 		return input{}, err
 	}
+	// Go durations only hold about 292 years, so a larger gap between the
+	// handover and from would pick the wrong shift. 100 years is far beyond any
+	// real schedule, so anything over it is a mistake.
+	if from.After(schedule.HandoverStartAt.AddDate(100, 0, 0)) {
+		return input{}, fmt.Errorf("--from (%s) must be at most 100 years after handover_start_at (%s)",
+			from.Format(time.RFC3339), schedule.HandoverStartAt.Format(time.RFC3339))
+	}
 	overrides, err := loadFile("overrides", opts.overridesPath, oncall.ParseOverrides)
 	if err != nil {
 		return input{}, err

@@ -90,6 +90,17 @@ func TestRun(t *testing.T) {
 			wantStderr: []string{"--until (2027-11-06T17:00:01Z) must be at most 1 year after --from (2026-11-06T17:00:00Z)"},
 		},
 		{
+			name:     "from exactly 100 years after the handover is allowed",
+			args:     argsWith(map[string]string{"from": "2126-11-06T17:00:00Z", "until": "2126-11-20T17:00:00Z"}),
+			wantCode: 0,
+		},
+		{
+			name:       "from over 100 years after the handover",
+			args:       argsWith(map[string]string{"from": "2126-11-06T17:00:01Z", "until": "2126-11-20T17:00:00Z"}),
+			wantCode:   1,
+			wantStderr: []string{"--from (2126-11-06T17:00:01Z) must be at most 100 years after handover_start_at (2026-11-06T17:00:00Z)"},
+		},
+		{
 			name:       "no flags",
 			args:       nil,
 			wantCode:   1,
