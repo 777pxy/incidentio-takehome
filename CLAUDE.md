@@ -4,63 +4,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-This is the incident.io early-careers take-home, written in Go with Cobra. It is currently a hello-world skeleton: the command prints a greeting and has no flags, JSON parsing or scheduling logic yet.
+This is the incident.io early-careers take-home, written in Go with Cobra. `./render-schedule` is fully implemented: it parses and validates the input, generates the shifts, applies the overrides, truncates the result to the window, merges touching entries and prints the result as JSON.
 
-- `README.md` is the brief and the source of truth for behaviour.
-- `starting-notes.md` holds the candidate's planned algorithm, edge cases and draft talking points for the video.
+- `README.md` is the candidate's spec and the source of truth for behaviour. Code must match it step by step. If the spec is wrong, point to the exact line rather than coding around it.
+- `project_guide.md` is the original incident.io brief. Use it for context only.
 
-Only implement what the candidate explicitly asks for in the current request.
+Only implement what the candidate explicitly asks for in the current request. When they ask a question, answer it and offer the change rather than making it.
 
 ## Commands
 
 ```console
-go run .                          # run without building
 go build -o render-schedule .     # build the ./render-schedule binary (gitignored)
 go vet ./...
-go test ./...                     # no tests exist yet
+go test ./...
 go test ./... -run TestName       # run a single test
 ```
 
-`main.go` calls `cmd.Execute()`, and the root command is defined in `cmd/root.go`.
-
-## The deliverable
-
-An executable named `./render-schedule`, run from the repo root:
+## Usage
 
 ```console
 ./render-schedule \
-    --schedule=schedule.json \
-    --overrides=overrides.json \
+    --schedule=testdata/brief/schedule.json \
+    --overrides=testdata/brief/overrides.json \
     --from='2026-11-06T17:00:00Z' \
     --until='2026-11-20T17:00:00Z'
 ```
 
-It prints a JSON array of `{user, start_at, end_at}` entries: the rotation with overrides applied, truncated to the `--from`/`--until` window. The README's worked example is the natural first test case. The JSON fixtures it uses aren't in the repo yet, but their contents are shown in the README.
+The command prints a JSON array of `{user, start_at, end_at}` entries. Errors are printed to stderr as `render-schedule: …`, and the exit code is 1.
 
-The README guarantees that overrides start after `handover_start_at` and don't overlap each other. It does not guarantee that the overrides file is sorted. The brief prioritises correctness over performance (windows of a few weeks, under 100 overrides).
+## Architecture
 
-## Planned algorithm
-
-From `starting-notes.md`: generate the shifts in time order, then sweep shifts and overrides together with two pointers. Each override splits an overlapping shift into at most two remainders, and any remainder with positive length is kept:
-
-- `[shift_start, min(shift_end, override_start)]`
-- `[max(shift_start, override_end), shift_end]`
-
-The override itself is inserted before the second remainder. An override can span several shifts, so it must keep applying until a shift ends after it.
-
-The notes list "override array comes sorted" as an assumption, but the README doesn't guarantee order, so sort the overrides.
-
-Edge-case decisions in the notes:
-
-- **Merging:** touching entries for the same user are merged into one. The same user can also appear more than once in `users`.
-- **Slivers:** small leftover pieces of a shift are kept as they are.
-- **Overrides past the end:** these are truncated to the end of the window.
-- **Invalid input:** malformed input (can't be parsed) and parseable input with wrong or missing information both produce a detailed error message.
-- **`--from` before `handover_start_at`:** this section of the notes is unfinished, so ask the candidate how to handle it. It flags a concern about negative values in Go's integer division when working out which shift a time falls in.
+- `main.go` calls `cmd.Run(args, stdout, stderr)` and exits with the code it returns.
+- `cmd/root.go`:
+  - defines the Cobra command and its four required flags
+  - `loadInput` parses the time flags, which are converted to UTC
+  - it applies the 1-year window cap, loads the schedule, applies the 100-year `--from` vs `handover_start_at` cap, then loads the overrides
+- `internal/oncall/`:
+  - `types.go` holds `Schedule`, `Override` and `Entry`.
+  - `parse.go` decodes the JSON. Decoding errors give a line and column. Validation problems are collected into a `ValidationError`, and every time is converted to UTC.
+  - `generate.go`: `GenerateShifts` clamps `--from` to the handover before the integer division, then steps forward until `--until`.
+  - `render.go`: `Render` runs `GenerateShifts`, then `applyOverrides`, then `truncate`, then `mergeTouching`.
+    - `applyOverrides` sorts the overrides and walks them alongside the shifts with two pointers, carrying the right part of each shift forward.
+    - `truncate` drops entries with length ≤ 0.
+- Tests are table-driven and use testify.
+  - `main_test.go` builds the binary and runs it end to end.
+  - It compares the output with `testdata/brief/expected.json`, and checks the error output using `testdata/invalid/`.
 
 ## Submission
 
-- A ZIP containing the code and a `README.md` with run and dependency-install instructions. The current `README.md` is the brief, so it will need replacing or moving.
+- A ZIP containing the code and a `README.md` with run and dependency-install instructions. The README doesn't have these instructions yet.
 - A 5-minute video link goes in the submission's notes field, not the repo. It covers the approach and why, how the code implements it, and what features could come next, pitched at a new team-mate.
 - AI tools are allowed, but the candidate must be able to explain and justify every decision. Keep the code simple enough to walk through, and surface design decisions to the candidate rather than settling them silently.
 

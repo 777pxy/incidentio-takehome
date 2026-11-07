@@ -145,12 +145,20 @@ If `handover_interval_days` is more than 365, print an error and exit with a non
 
 I don't expect anyone to be on call for more than a month, let alone a year, so a 1 year cap leaves more than enough room. Anything longer must be a user input error.
 
+### `--from` more than 100 years after `handover_start_at`
+If `--from` is more than 100 years after `handover_start_at`, print an error and exit with a non-zero code.
+
+Go's durations can only hold about 292 years, so past that the gap between `handover_start_at` and `--from` stops growing and the wrong shift and user would be picked. No real schedule runs from the same anchor for 100 years, so the cap stays well clear of that and catches typos like `3026` instead of `2026`. It's 100 rather than 1 year because a rotation can run for years from the same anchor.
+
+The check uses the `--from` given by the user. A year is a calendar year.
+
 ### Other rules
 - All four flags are required, file paths can't be empty, and unknown flags or extra arguments are rejected.
 - `users` must have at least one user, and no name can be blank.
 - `handover_start_at` must be present, and `handover_interval_days` must be at least 1.
 - Each override needs a non-blank `user`, a `start_at` and an `end_at`, with `end_at` after `start_at`.
-- JSON syntax and type errors give the line and column, and every problem in a file is reported at once.
+- JSON syntax and type errors stop at the first one and give its line and column. Once a file decodes, every validation problem in it is reported at once. Reporting every decoding error as well would mean decoding each field separately, which is too exhaustive for the benefit.
+- Bad timestamps in a file are caught by Go's time parser while decoding. The error shows the bad value and the expected format, e.g. `timestamp "6th Nov 2026" must be in RFC 3339 format ...`, but not its line, column or field, and decoding stops there.
 
 # Potential Future Features:
 
