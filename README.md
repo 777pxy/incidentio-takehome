@@ -143,7 +143,9 @@ render-schedule: testdata/invalid/schedule.json: invalid schedule:
 go test ./...
 ```
 
-The end-to-end test in `main_test.go` builds the binary, runs it on the brief's example, and compares the output exactly to `testdata/brief/expected.json`.
+The end-to-end tests in `main_test.go` build the binary and run it twice:
+- on the brief's example, comparing the output exactly to `testdata/brief/expected.json`
+- on the invalid schedule in `testdata/invalid/`, checking it exits with code 1 and prints the exact error to stderr and nothing to stdout
 
 ## Project layout
 - `main.go` runs the command and exits with its exit code.
