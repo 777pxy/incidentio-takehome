@@ -48,7 +48,7 @@ Safe assumptions:
 # Algorithm:
 
 ## Assumptions:
-- Schedule array comes sorted as we get a config file and I can guarantee a sorted schedule pre-override.
+- Schedule array comes sorted, as Schedule Generation produces the shifts in time order, so I can guarantee a sorted schedule pre-override.
 
 ## Schedule Generation
 Using handover_start_at as an anchor I would calculate how many shifts have occured between handover and `--from`.

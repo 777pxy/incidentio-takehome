@@ -224,3 +224,22 @@ func TestRender(t *testing.T) {
 		})
 	}
 }
+
+func TestRenderSingleUser(t *testing.T) {
+	// With one user, every shift is theirs, so the touching shifts merge
+	// into one entry covering the whole window.
+	schedule := Schedule{
+		Users:                []string{"alice"},
+		HandoverStartAt:      mustTime(t, "2026-11-06T17:00:00Z"),
+		HandoverIntervalDays: 7,
+	}
+
+	got := Render(schedule, nil, mustTime(t, "2026-11-06T17:00:00Z"), mustTime(t, "2026-11-27T17:00:00Z"))
+
+	want := []Entry{{
+		User:    "alice",
+		StartAt: mustTime(t, "2026-11-06T17:00:00Z"),
+		EndAt:   mustTime(t, "2026-11-27T17:00:00Z"),
+	}}
+	assert.Equal(t, want, got)
+}

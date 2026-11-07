@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -52,9 +53,15 @@ func newRootCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Rendering isn't implemented yet; for now just load and validate.
-			_, err := loadInput(opts)
-			return err
+			in, err := loadInput(opts)
+			if err != nil {
+				return err
+			}
+			entries := oncall.Render(in.schedule, in.overrides, in.from, in.until)
+
+			enc := json.NewEncoder(cmd.OutOrStdout())
+			enc.SetIndent("", "  ")
+			return enc.Encode(entries)
 		},
 	}
 
