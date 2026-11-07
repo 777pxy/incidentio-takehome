@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,6 +30,10 @@ func TestRun(t *testing.T) {
 	overrides := writeFile(t, dir, "overrides.json", validOverrides)
 	badSchedule := writeFile(t, dir, "bad-schedule.json", `{"users": [], "handover_start_at": "2026-11-06T17:00:00Z", "handover_interval_days": 0}`)
 	badOverrides := writeFile(t, dir, "bad-overrides.json", `[{"user": "charlie",`)
+	overlapping := writeFile(t, dir, "overlapping.json", `[
+		{"user": "charlie", "start_at": "2026-11-09T17:00:00Z", "end_at": "2026-11-09T22:00:00Z"},
+		{"user": "bob", "start_at": "2026-11-09T20:00:00Z", "end_at": "2026-11-09T23:00:00Z"}
+	]`)
 	missing := filepath.Join(dir, "missing.json")
 
 	// argsWith returns a complete set of valid flags, with the flags in
@@ -158,6 +163,12 @@ func TestRun(t *testing.T) {
 			wantCode:   1,
 			wantStderr: []string{badOverrides + ": malformed JSON at line 1"},
 		},
+		{
+			name:       "overlapping overrides",
+			args:       argsWith(map[string]string{"overrides": overlapping}),
+			wantCode:   1,
+			wantStderr: []string{overlapping + ": invalid overrides:\n  - overrides[1]: overlaps overrides[0]"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -205,4 +216,32 @@ func TestParseTimeFlag(t *testing.T) {
 			assert.Equal(t, tt.want, got.Format(time.RFC3339))
 		})
 	}
+}
+
+func TestRunSortsOverrides(t *testing.T) {
+	// The overrides are out of order in the file. Render needs them sorted,
+	// so this checks loadInput passes on the sorted list from CheckOverrides.
+	dir := t.TempDir()
+	schedule := writeFile(t, dir, "schedule.json", validSchedule)
+	overrides := writeFile(t, dir, "overrides.json", `[
+		{"user": "erin", "start_at": "2026-11-10T00:00:00Z", "end_at": "2026-11-10T06:00:00Z"},
+		{"user": "dave", "start_at": "2026-11-08T00:00:00Z", "end_at": "2026-11-08T06:00:00Z"}
+	]`)
+
+	var stdout, stderr bytes.Buffer
+	code := Run([]string{
+		"--schedule=" + schedule,
+		"--overrides=" + overrides,
+		"--from=2026-11-06T17:00:00Z",
+		"--until=2026-11-13T17:00:00Z",
+	}, &stdout, &stderr)
+	require.Equal(t, 0, code, "stderr: %s", stderr.String())
+
+	var got []oncall.Entry
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	var users []string
+	for _, e := range got {
+		users = append(users, e.User)
+	}
+	assert.Equal(t, []string{"alice", "dave", "alice", "erin", "alice"}, users)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 )
@@ -68,9 +69,9 @@ func ParseSchedule(data []byte) (Schedule, error) {
 	return s, nil
 }
 
-// ParseOverrides decodes a JSON array of overrides and validates each one.
-// It doesn't check for overlaps or overrides before the schedule starts, as
-// the brief guarantees neither will happen.
+// ParseOverrides decodes a JSON array of overrides and validates each one on
+// its own. Checks that need the schedule or the other overrides are in
+// CheckOverrides.
 func ParseOverrides(data []byte) ([]Override, error) {
 	var overrides []Override
 	if err := decode(data, &overrides); err != nil {
@@ -103,6 +104,46 @@ func ParseOverrides(data []byte) ([]Override, error) {
 		overrides[i].EndAt = overrides[i].EndAt.UTC()
 	}
 	return overrides, nil
+}
+
+// CheckOverrides sorts the overrides by start time, then rejects any that
+// start before the schedule's handover or overlap another override. The brief
+// says neither will happen, but if it does the output would be an invalid
+// schedule, so it's safer to fail loudly. It returns the sorted overrides,
+// ready for Render.
+func CheckOverrides(s Schedule, overrides []Override) ([]Override, error) {
+	// Sort the positions rather than the overrides themselves, so errors can
+	// still point at each override's place in the file.
+	order := make([]int, len(overrides))
+	for i := range order {
+		order[i] = i
+	}
+	slices.SortFunc(order, func(a, b int) int { return overrides[a].StartAt.Compare(overrides[b].StartAt) })
+
+	var problems []string
+	sorted := make([]Override, 0, len(overrides))
+	latest := -1 // the override checked so far that ends latest
+	for _, i := range order {
+		o := overrides[i]
+		if o.StartAt.Before(s.HandoverStartAt) {
+			problems = append(problems, fmt.Sprintf("overrides[%d]: start_at (%s) must not be before handover_start_at (%s)",
+				i, o.StartAt.Format(time.RFC3339), s.HandoverStartAt.Format(time.RFC3339)))
+		}
+		// Comparing with the one that ends latest, not just the previous one,
+		// also catches an override inside an earlier, longer one.
+		if latest >= 0 && o.StartAt.Before(overrides[latest].EndAt) {
+			problems = append(problems, fmt.Sprintf("overrides[%d]: overlaps overrides[%d]", i, latest))
+		}
+		if latest < 0 || o.EndAt.After(overrides[latest].EndAt) {
+			latest = i
+		}
+		sorted = append(sorted, o)
+	}
+
+	if len(problems) > 0 {
+		return nil, &ValidationError{What: "overrides", Problems: problems}
+	}
+	return sorted, nil
 }
 
 // decode unmarshals data into v and rejects any key v has no field for.

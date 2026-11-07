@@ -39,13 +39,13 @@ The command prints a JSON array of `{user, start_at, end_at}` entries. Errors ar
 - `cmd/root.go`:
   - defines the Cobra command and its four required flags
   - `loadInput` parses the time flags, which are converted to UTC
-  - it applies the 1-year window cap, loads the schedule, applies the 100-year `--from` vs `handover_start_at` cap, then loads the overrides
+  - it applies the 1-year window cap, loads the schedule, applies the 100-year `--from` vs `handover_start_at` cap, then loads the overrides and runs `CheckOverrides`, which sorts them once, rejects any before the handover or overlapping another, and returns them sorted
 - `internal/oncall/`:
   - `types.go` holds `Schedule`, `Override` and `Entry`.
   - `parse.go` decodes the JSON. Decoding errors give a line and column. Validation problems are collected into a `ValidationError`, and every time is converted to UTC.
   - `generate.go`: `GenerateShifts` clamps `--from` to the handover before the integer division, then steps forward until `--until`.
   - `render.go`: `Render` runs `GenerateShifts`, then `applyOverrides`, then `truncate`, then `mergeTouching`.
-    - `applyOverrides` sorts the overrides and walks them alongside the shifts with two pointers, carrying the right part of each shift forward.
+    - `applyOverrides` expects the overrides already sorted (by `CheckOverrides`) and walks them alongside the shifts with two pointers, carrying the right part of each shift forward.
     - `truncate` drops entries with length ≤ 0.
 - Tests are table-driven and use testify.
   - `main_test.go` builds the binary and runs it end to end.

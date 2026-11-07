@@ -7,7 +7,8 @@ import (
 
 // Render returns the final schedule between from and until: the rotation's
 // shifts with the overrides applied, cut to the window, and with touching
-// entries for the same user merged.
+// entries for the same user merged. The overrides must be sorted by start time
+// and not overlap, as CheckOverrides returns them.
 func Render(s Schedule, overrides []Override, from, until time.Time) []Entry {
 	shifts := GenerateShifts(s, from, until)
 	entries := applyOverrides(shifts, overrides)
@@ -17,18 +18,16 @@ func Render(s Schedule, overrides []Override, from, until time.Time) []Entry {
 
 // applyOverrides walks the shifts and the overrides together, both in time
 // order. Each override cuts the shifts it overlaps down to the parts outside
-// it, and is output once in their place.
+// it, and is output once in their place. The overrides must already be sorted
+// and not overlap, as CheckOverrides returns them.
 func applyOverrides(shifts []Entry, overrides []Override) []Entry {
-	sorted := slices.Clone(overrides)
-	slices.SortFunc(sorted, func(a, b Override) int { return a.StartAt.Compare(b.StartAt) })
-
 	// Copied so that carrying a right part forward doesn't change the caller's
 	// slice.
 	shifts = slices.Clone(shifts)
 
 	out := []Entry{}
 	i := 0 // the next shift to look at
-	for _, o := range sorted {
+	for _, o := range overrides {
 		override := Entry{User: o.User, StartAt: o.StartAt, EndAt: o.EndAt}
 		overrideOutput := false
 

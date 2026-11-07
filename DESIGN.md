@@ -24,7 +24,7 @@ actual_first_shift_start = --from
 From there, it cycles through the users, with each shift starting where the previous one ended and ending one period later. It stops once a shift would start at or after `--until`, and the final shift is cut to `--until`.
 
 ## Main Idea
-Sort the overrides based on time (Go uses pdqsort so worst case is O(VlogV)).
+The overrides arrive sorted by time, as they're sorted once when they're checked (see Validation). Go uses pdqsort so worst case is O(VlogV).
 
 For each override:
 1. Output every shift that ends at or before the override starts.
@@ -43,7 +43,7 @@ After all overrides, output the remaining shifts and then truncate the output ba
 S = number of shifts
 V = number of overrides
 
-Every step moves at least one of the pointers forwards, so the walk is O(S + V). Sorting the overrides is O(VlogV) so all together it's O(S + VlogV) and given that the max number of overrides is < 100 this essentially costs nothing. In practice the shifts would dominate.
+Every step moves at least one of the pointers forwards, so the walk is O(S + V). Sorting the overrides is O(VlogV), and checking them afterwards is O(V), so all together it's O(S + VlogV) and given that the max number of overrides is < 100 this essentially costs nothing. In practice the shifts would dominate.
 
 # Edge Cases
 ## --until <= handover_start
@@ -78,12 +78,12 @@ I decided to accept any offset rather than only `Z`, as rejecting a valid RFC 33
 Every time is converted to UTC as soon as it's parsed. This only changes how a time is displayed, not the moment it refers to, so the shifts come out the same. The output is consistent, with every time ending in `Z`, instead of mixing the offsets from the inputs. See IMPLEMENTATION.md for more on the conversion.
 
 # Validation
-The brief's safe assumptions (overrides don't overlap, and don't start before `handover_start_at`) aren't checked. If they're broken, the output is still produced but isn't a valid schedule:
-- Overlapping overrides produce entries that overlap in the output.
-- An override entirely inside another override is dropped.
-- An override before `handover_start_at` produces an entry before the rotation starts.
+The brief's safe assumptions (overrides don't overlap, and don't start before `handover_start_at`) are still checked, as the user can't be trusted to follow them (see the README). If they were broken, the algorithm would still produce output, but it wouldn't be a valid schedule:
+- Overlapping overrides would produce entries that overlap in the output.
+- An override entirely inside another override would be dropped.
+- An override before `handover_start_at` would produce an entry before the rotation starts.
 
-Catching these is what Lint Mode (see Potential Future Features) would do.
+So instead, the overrides are sorted by start time and then checked in that order. Each one is compared with the override that ends latest so far, which also catches one sitting inside an earlier, longer override. Any that break the assumptions are rejected with an error, e.g. `overrides[1]: overlaps overrides[0]`. The sorted overrides are then passed on to the Main Idea, so they're only sorted once.
 
 Invalid inputs in this context fall into 2 types:
 1. Malformed - input cannot be parsed
@@ -111,8 +111,9 @@ Past a few hundred years the wrong shift and user would be picked (see IMPLEMENT
 - `users` must have at least one user, and no name can be blank.
 - `handover_start_at` must be present, and `handover_interval_days` must be at least 1.
 - Each override needs a non-blank `user`, a `start_at` and an `end_at`, with `end_at` after `start_at`.
+- No override can start before `handover_start_at` or overlap another override. Touching overrides, where one ends exactly when the next starts, are allowed.
 - Unknown keys are rejected, e.g. `unknown key "handover_intervl_days"`. Without this, a misspelled key would be ignored and only show up as a missing value, e.g. `handover_interval_days: must be at least 1`, which doesn't say the name was wrong. The error doesn't say which override the key was in.
-- JSON syntax and type errors stop at the first one and give its line and column. Once a file decodes, every validation problem in it is reported at once. Reporting every decoding error as well would mean decoding each field separately, which is too exhaustive for the benefit.
+- JSON syntax and type errors stop at the first one and give its line and column. Once a file decodes, every validation problem in it is reported at once. The one exception is that overlaps and overrides before the handover are only checked once every override is valid on its own, as they compare overrides with each other and with the schedule. Reporting every decoding error as well would mean decoding each field separately, which is too exhaustive for the benefit.
 - Bad timestamps in a file are caught by Go's time parser while decoding. The error shows the bad value and the expected format, e.g. `timestamp "6th Nov 2026" must be in RFC 3339 format ...`.
 
 For how `encoding/json` treats `null` times, key case, duplicate keys, byte order marks and HTML characters, see IMPLEMENTATION.md.
@@ -176,11 +177,11 @@ Only one person's shifts i.e. "my shifts".
 This is essentially the Reminders / Calendar plugins mentioned in Product Features.
 
 ### Lint Mode
-This would comb over the schedule and flag any slivers or overlapping overrides rather than just blindly trusting user inputs.
+This would comb over the schedule and flag any slivers rather than just blindly trusting user inputs.
 
 It could also flag gaps, where nobody is on call, and conflicts, where someone is on two shifts at once.
 
-A real product can't assume overrides never overlap like the brief does, so it would need a rule for them: either reject them when they're saved, or let one take priority.
+Overlapping overrides are already rejected, but a real product may want a softer rule, e.g. letting one take priority, rather than rejecting the whole file.
 
 # Limits
 

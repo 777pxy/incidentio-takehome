@@ -259,3 +259,97 @@ func TestParseOverrides(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckOverrides(t *testing.T) {
+	schedule := Schedule{
+		Users:                []string{"alice", "bob"},
+		HandoverStartAt:      mustTime(t, "2026-11-06T17:00:00Z"),
+		HandoverIntervalDays: 7,
+	}
+	override := func(start, end string) Override {
+		return Override{User: "charlie", StartAt: mustTime(t, start), EndAt: mustTime(t, end)}
+	}
+
+	tests := []struct {
+		name         string
+		overrides    []Override
+		want         []Override // sorted by start time
+		wantProblems []string   // nil means no error
+	}{
+		{
+			name: "no overrides",
+			want: []Override{},
+		},
+		{
+			name: "overrides are returned sorted",
+			overrides: []Override{
+				override("2026-11-10T00:00:00Z", "2026-11-10T06:00:00Z"),
+				override("2026-11-08T00:00:00Z", "2026-11-08T06:00:00Z"),
+			},
+			want: []Override{
+				override("2026-11-08T00:00:00Z", "2026-11-08T06:00:00Z"),
+				override("2026-11-10T00:00:00Z", "2026-11-10T06:00:00Z"),
+			},
+		},
+		{
+			name:      "starting exactly at the handover is allowed",
+			overrides: []Override{override("2026-11-06T17:00:00Z", "2026-11-06T18:00:00Z")},
+			want:      []Override{override("2026-11-06T17:00:00Z", "2026-11-06T18:00:00Z")},
+		},
+		{
+			name: "touching overrides are allowed",
+			overrides: []Override{
+				override("2026-11-09T17:00:00Z", "2026-11-09T18:00:00Z"),
+				override("2026-11-09T18:00:00Z", "2026-11-09T19:00:00Z"),
+			},
+			want: []Override{
+				override("2026-11-09T17:00:00Z", "2026-11-09T18:00:00Z"),
+				override("2026-11-09T18:00:00Z", "2026-11-09T19:00:00Z"),
+			},
+		},
+		{
+			name:         "before the handover",
+			overrides:    []Override{override("2026-11-06T16:00:00Z", "2026-11-06T18:00:00Z")},
+			wantProblems: []string{"overrides[0]: start_at (2026-11-06T16:00:00Z) must not be before handover_start_at (2026-11-06T17:00:00Z)"},
+		},
+		{
+			name: "overlapping, in reverse order",
+			overrides: []Override{
+				override("2026-11-09T18:00:00Z", "2026-11-09T20:00:00Z"),
+				override("2026-11-09T17:00:00Z", "2026-11-09T19:00:00Z"),
+			},
+			wantProblems: []string{"overrides[0]: overlaps overrides[1]"},
+		},
+		{
+			name: "inside an earlier, longer override",
+			overrides: []Override{
+				override("2026-11-09T00:00:00Z", "2026-11-10T00:00:00Z"),
+				override("2026-11-09T01:00:00Z", "2026-11-09T02:00:00Z"),
+				override("2026-11-09T03:00:00Z", "2026-11-09T04:00:00Z"),
+			},
+			wantProblems: []string{
+				"overrides[1]: overlaps overrides[0]",
+				"overrides[2]: overlaps overrides[0]",
+			},
+		},
+		{
+			name: "every problem is reported",
+			overrides: []Override{
+				override("2026-11-06T16:00:00Z", "2026-11-06T18:00:00Z"),
+				override("2026-11-06T17:30:00Z", "2026-11-06T19:00:00Z"),
+			},
+			wantProblems: []string{
+				"overrides[0]: start_at (2026-11-06T16:00:00Z) must not be before handover_start_at (2026-11-06T17:00:00Z)",
+				"overrides[1]: overlaps overrides[0]",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := CheckOverrides(schedule, tt.overrides)
+			checkErr(t, err, "", tt.wantProblems)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

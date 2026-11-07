@@ -128,6 +128,11 @@ Safe assumptions, from the brief:
 - Overrides don't overlap with other overrides
 - Overrides will always be after a schedule's `handover_start_at`
 
+These are still checked, and broken ones are rejected (see below).
+
+### Never trust the input
+I've taken a zero-trust approach to input: never trust the user, because they're guaranteed to get something wrong in some unpredictable way. So every input is validated, even what the brief says will never happen, and anything that looks like a mistake is rejected with a clear error. An error is easy to spot and fix, but a plausible-looking wrong schedule means someone doesn't get paged.
+
 ### Errors
 Invalid input prints a detailed error to stderr and exits with code 1, e.g.:
 

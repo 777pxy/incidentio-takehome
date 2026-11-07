@@ -211,22 +211,6 @@ func TestRender(t *testing.T) {
 			},
 		},
 		{
-			name: "overrides out of order are sorted",
-			overrides: []Override{
-				override("erin", "2026-11-10T00:00:00Z", "2026-11-10T06:00:00Z"),
-				override("dave", "2026-11-08T00:00:00Z", "2026-11-08T06:00:00Z"),
-			},
-			from:  "2026-11-06T17:00:00Z",
-			until: "2026-11-13T17:00:00Z",
-			want: []Entry{
-				entry("alice", "2026-11-06T17:00:00Z", "2026-11-08T00:00:00Z"),
-				entry("dave", "2026-11-08T00:00:00Z", "2026-11-08T06:00:00Z"),
-				entry("alice", "2026-11-08T06:00:00Z", "2026-11-10T00:00:00Z"),
-				entry("erin", "2026-11-10T00:00:00Z", "2026-11-10T06:00:00Z"),
-				entry("alice", "2026-11-10T06:00:00Z", "2026-11-13T17:00:00Z"),
-			},
-		},
-		{
 			name:      "no overrides gives the generated shifts",
 			overrides: []Override{},
 			from:      "2026-11-06T17:00:00Z",

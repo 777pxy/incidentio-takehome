@@ -107,6 +107,10 @@ func loadInput(opts options) (input, error) {
 	if err != nil {
 		return input{}, err
 	}
+	overrides, err = oncall.CheckOverrides(schedule, overrides)
+	if err != nil {
+		return input{}, fmt.Errorf("%s: %w", opts.overridesPath, err)
+	}
 	return input{schedule: schedule, overrides: overrides, from: from, until: until}, nil
 }
 
