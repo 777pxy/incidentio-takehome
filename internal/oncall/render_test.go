@@ -88,6 +88,27 @@ func TestRender(t *testing.T) {
 			},
 		},
 		{
+			name: "many overrides in one shift",
+			overrides: []Override{
+				override("dave", "2026-11-07T00:00:00Z", "2026-11-07T06:00:00Z"),
+				override("erin", "2026-11-07T06:00:00Z", "2026-11-07T12:00:00Z"), // straight after dave
+				override("frank", "2026-11-08T00:00:00Z", "2026-11-08T06:00:00Z"),
+				override("dave", "2026-11-12T00:00:00Z", "2026-11-13T17:00:00Z"), // ends at the handover
+			},
+			from:  "2026-11-06T17:00:00Z",
+			until: "2026-11-20T17:00:00Z",
+			want: []Entry{
+				entry("alice", "2026-11-06T17:00:00Z", "2026-11-07T00:00:00Z"),
+				entry("dave", "2026-11-07T00:00:00Z", "2026-11-07T06:00:00Z"),
+				entry("erin", "2026-11-07T06:00:00Z", "2026-11-07T12:00:00Z"),
+				entry("alice", "2026-11-07T12:00:00Z", "2026-11-08T00:00:00Z"),
+				entry("frank", "2026-11-08T00:00:00Z", "2026-11-08T06:00:00Z"),
+				entry("alice", "2026-11-08T06:00:00Z", "2026-11-12T00:00:00Z"),
+				entry("dave", "2026-11-12T00:00:00Z", "2026-11-13T17:00:00Z"),
+				entry("bob", "2026-11-13T17:00:00Z", "2026-11-20T17:00:00Z"),
+			},
+		},
+		{
 			name: "override spanning several shifts is output once",
 			overrides: []Override{
 				override("dave", "2026-11-10T00:00:00Z", "2026-11-25T00:00:00Z"),
